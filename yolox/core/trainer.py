@@ -36,7 +36,11 @@ from bigdl.nano.pytorch import TorchNano
 class Trainer(TorchNano):
     def __init__(self, exp: Exp, args):
         # import pdb; pdb.set_trace()
-        super().__init__(use_ipex=args.use_ipex)
+        try:
+            precision = int(args.precision)
+        except:
+            precision = args.precision
+        super().__init__(use_ipex=args.use_ipex, precision=precision)
         # init function only defines some basic attr, other attrs like model, optimizer are built in
         # before_train methods.
         self.exp = exp

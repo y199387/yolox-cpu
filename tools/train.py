@@ -4,6 +4,7 @@
 
 import argparse
 import random
+from typing import Union
 import warnings
 from loguru import logger
 
@@ -19,6 +20,7 @@ def make_parser():
     parser.add_argument("-expn", "--experiment-name", type=str, default=None)
     parser.add_argument("-n", "--name", type=str, default=None, help="model name")
     parser.add_argument("--use_ipex", type=bool, default=False)
+    parser.add_argument("--precision")
     # distributed
     parser.add_argument(
         "--dist-backend", default="nccl", type=str, help="distributed backend"
