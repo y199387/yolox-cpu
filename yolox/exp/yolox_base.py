@@ -151,6 +151,10 @@ class Exp(BaseExp):
                 cache=cache_img,
             )
 
+        indices = torch.randperm(len(dataset))
+        data_size = len(dataset) // 50
+        dataset = torch.utils.data.Subset(dataset, indices[:data_size])
+
         dataset = MosaicDetection(
             dataset,
             mosaic=not no_aug,
