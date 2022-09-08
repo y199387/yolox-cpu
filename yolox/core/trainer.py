@@ -47,9 +47,7 @@ class Trainer(TorchNano):
         self.amp_training = args.fp16
         # self.scaler = torch.cuda.amp.GradScaler(enabled=args.fp16)
         self.is_distributed = self.world_size > 1
-        self.rank = self.global_rank
-        self.local_rank = self.local_rank
-        self.device = torch.device("cuda:{}".format(self.local_rank) if torch.cuda.is_available() else "cpu")
+        # self.device = torch.device("cuda:{}".format(self.local_rank) if torch.cuda.is_available() else "cpu")
         # self.device = "cpu"
         self.use_model_ema = exp.ema
         self.save_history_ckpt = exp.save_history_ckpt
@@ -68,7 +66,7 @@ class Trainer(TorchNano):
 
         setup_logger(
             self.file_name,
-            distributed_rank=self.rank,
+            distributed_rank=self.global_rank,
             filename="train_log.txt",
             mode="a",
         )
@@ -146,7 +144,7 @@ class Trainer(TorchNano):
         logger.info(
             "Model Summary: {}".format(get_model_info(model, self.exp.test_size))
         )
-        model.to(self.device)
+        # model.to(self.device)
 
         # solver related init
         optimizer = self.exp.get_optimizer(self.args.batch_size)
@@ -190,7 +188,7 @@ class Trainer(TorchNano):
             batch_size=self.args.batch_size, is_distributed=self.is_distributed
         )
         # Tensorboard and Wandb loggers
-        if self.rank == 0:
+        if self.global_rank == 0:
             if self.args.logger == "tensorboard":
                 self.tblogger = SummaryWriter(os.path.join(self.file_name, "tensorboard"))
             elif self.args.logger == "wandb":
@@ -209,7 +207,7 @@ class Trainer(TorchNano):
         logger.info(
             "Training of experiment is done and the best AP is {:.2f}".format(self.best_ap * 100)
         )
-        if self.rank == 0:
+        if self.global_rank == 0:
             if self.args.logger == "wandb":
                 self.wandb_logger.finish()
 
@@ -218,7 +216,8 @@ class Trainer(TorchNano):
 
         if self.epoch + 1 == self.max_epoch - self.exp.no_aug_epochs or self.no_aug:
             logger.info("--->No mosaic aug now!")
-            self.train_loader.close_mosaic()
+            # import pdb; pdb.set_trace()
+            # self.train_loader.close_mosaic()
             logger.info("--->Add additional L1 loss now!")
             if self.is_distributed:
                 self.model.module.head.use_l1 = True
@@ -275,7 +274,7 @@ class Trainer(TorchNano):
                 + (", size: {:d}, {}".format(self.input_size[0], eta_str))
             )
 
-            if self.rank == 0:
+            if self.global_rank == 0:
                 if self.args.logger == "wandb":
                     metrics = {"train/" + k: v.latest for k, v in loss_meter.items()}
                     metrics.update({
@@ -288,7 +287,7 @@ class Trainer(TorchNano):
         # random resizing
         if (self.progress_in_iter + 1) % 10 == 0:
             self.input_size = self.exp.random_resize(
-                self.train_loader, self.epoch, self.rank, self.is_distributed
+                self.train_loader, self.epoch, self.global_rank, self.is_distributed
             )
 
     @property
@@ -346,7 +345,7 @@ class Trainer(TorchNano):
         update_best_ckpt = ap50_95 > self.best_ap
         self.best_ap = max(self.best_ap, ap50_95)
 
-        if self.rank == 0:
+        if self.global_rank == 0:
             if self.args.logger == "tensorboard":
                 self.tblogger.add_scalar("val/COCOAP50", ap50, self.epoch + 1)
                 self.tblogger.add_scalar("val/COCOAP50_95", ap50_95, self.epoch + 1)
@@ -365,7 +364,7 @@ class Trainer(TorchNano):
             self.save_ckpt(f"epoch_{self.epoch + 1}", ap=ap50_95)
 
     def save_ckpt(self, ckpt_name, update_best_ckpt=False, ap=None):
-        if self.rank == 0:
+        if self.global_rank == 0:
             save_model = self.ema_model.ema if self.use_model_ema else self.model
             logger.info("Save weights to {}".format(self.file_name))
             ckpt_state = {
