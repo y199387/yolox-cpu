@@ -18,7 +18,7 @@ def make_parser():
     parser = argparse.ArgumentParser("YOLOX train parser")
     parser.add_argument("-expn", "--experiment-name", type=str, default=None)
     parser.add_argument("-n", "--name", type=str, default=None, help="model name")
-
+    parser.add_argument("--use_ipex", type=bool, default=False)
     # distributed
     parser.add_argument(
         "--dist-backend", default="nccl", type=str, help="distributed backend"
@@ -113,9 +113,6 @@ def main(exp: Exp, args):
 if __name__ == "__main__":
     configure_module()
     args = make_parser().parse_args()
-    args.update({
-        'use_ipex': True
-    })
     exp = get_exp(args.exp_file, args.name)
     exp.merge(args.opts)
 
