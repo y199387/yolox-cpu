@@ -154,16 +154,16 @@ class Trainer(TorchNano):
 
         # data related init
         self.no_aug = self.start_epoch >= self.max_epoch - self.exp.no_aug_epochs
-        # self.train_loader = self.exp.get_data_loader(
-        #     batch_size=self.args.batch_size,
-        #     is_distributed=self.is_distributed,
-        #     no_aug=self.no_aug,
-        #     cache_img=self.args.cache,
-        # )
-        train_loader = self.exp.get_eval_loader(
+        train_loader = self.exp.get_data_loader(
             batch_size=self.args.batch_size,
-            is_distributed=self.is_distributed
+            is_distributed=self.is_distributed,
+            no_aug=self.no_aug,
+            cache_img=self.args.cache,
         )
+        # train_loader = self.exp.get_eval_loader(
+        #     batch_size=self.args.batch_size,
+        #     is_distributed=self.is_distributed
+        # )
         # logger.info("init prefetcher, this might take one minute or less...")
         # self.prefetcher = DataPrefetcher(self.train_loader)
         # max_iter means iters per epoch
@@ -217,7 +217,7 @@ class Trainer(TorchNano):
         if self.epoch + 1 == self.max_epoch - self.exp.no_aug_epochs or self.no_aug:
             logger.info("--->No mosaic aug now!")
             # import pdb; pdb.set_trace()
-            # self.train_loader.close_mosaic()
+            self.train_loader._dataloader.close_mosaic()
             logger.info("--->Add additional L1 loss now!")
             if self.is_distributed:
                 self.model.module.head.use_l1 = True
