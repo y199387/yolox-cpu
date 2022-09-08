@@ -36,7 +36,7 @@ from bigdl.nano.pytorch import TorchNano
 class Trainer(TorchNano):
     def __init__(self, exp: Exp, args):
         # import pdb; pdb.set_trace()
-        super().__init__(args.use_ipex)
+        super().__init__(use_ipex=args.use_ipex)
         # init function only defines some basic attr, other attrs like model, optimizer are built in
         # before_train methods.
         self.exp = exp
@@ -231,7 +231,8 @@ class Trainer(TorchNano):
         self.save_ckpt(ckpt_name="latest")
 
         if (self.epoch + 1) % self.exp.eval_interval == 0:
-            all_reduce_norm(self.model)
+            # _IPEXConvNd does not support _load_from_state_dict method
+            # all_reduce_norm(self.model)
             self.evaluate_and_save_model()
 
     def before_iter(self):
